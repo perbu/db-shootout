@@ -34,6 +34,7 @@ func (b *SQLiteDB) OpenReadOnly() error {
 	if err != nil {
 		return fmt.Errorf("prepare: %w", err)
 	}
+	b.current = 0
 	return nil
 }
 
