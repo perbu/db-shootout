@@ -121,14 +121,20 @@ func (b *CDBDB) Next() (string, bool, error) {
 }
 
 // LookupValid retrieves content for the generated key at the given index.
-func (b *CDBDB) LookupValid(index int) (string, error) {
+func (b *CDBDB) Lookup(index int, valid bool) (string, error) {
 	if b.db == nil {
 		return "", fmt.Errorf("database is not open")
 	}
 	if index < 0 || index >= b.dirsize {
 		return "", fmt.Errorf("index out of bounds")
 	}
-	filename := keyset.GenerateKey(index)
+	var filename string
+	switch valid {
+	case true:
+		filename = keyset.GenerateKey(index)
+	case false:
+		filename = keyset.GenerateInvalidKey(index)
+	}
 	val, err := b.db.Get([]byte(filename))
 	if err != nil {
 		return "", fmt.Errorf("get: %w", err)
@@ -137,19 +143,4 @@ func (b *CDBDB) LookupValid(index int) (string, error) {
 		return "", fmt.Errorf("no row found")
 	}
 	return string(val), nil
-}
-
-// LookupInvalid attempts to retrieve a key we know does not exist.
-func (b *CDBDB) LookupInvalid() (string, error) {
-	if b.db == nil {
-		return "", fmt.Errorf("database is not open")
-	}
-	val, err := b.db.Get([]byte("invalid"))
-	if err != nil {
-		return "", fmt.Errorf("get: %w", err)
-	}
-	if val != nil {
-		return "", fmt.Errorf("row found")
-	}
-	return "", nil
 }

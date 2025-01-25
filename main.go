@@ -16,8 +16,7 @@ type BenchmarkDB interface {
 	Close() error
 	Populate() error
 	Next() (string, bool, error)
-	LookupValid(index int) (string, error)
-	LookupInvalid() (string, error)
+	Lookup(index int, valid bool) (string, error)
 }
 
 func main() {

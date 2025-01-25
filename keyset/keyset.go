@@ -40,6 +40,11 @@ func GenerateKey(index int) string {
 	return fmt.Sprintf("file_%04d", index)
 }
 
+// GenerateInvalidKey generates a deterministic key for the given index, but invalid.
+func GenerateInvalidKey(index int) string {
+	return fmt.Sprintf("file_%04d.invalid", index)
+}
+
 // GenerateRandomContent generates a random string of the given size in bytes.
 func GenerateRandomContent(size int) string {
 	return RandString(size)

@@ -107,11 +107,17 @@ func (b *SQLiteDB) Next() (string, bool, error) {
 
 // LookupValid retrieves the content of the entry at the given index.
 // We use a number between 0 and dirsize to generate a key. This should always succeed.
-func (b *SQLiteDB) LookupValid(index int) (string, error) {
+func (b *SQLiteDB) Lookup(index int, valid bool) (string, error) {
 	if index < 0 || index >= b.dirsize {
 		return "", fmt.Errorf("index out of bounds")
 	}
-	filename := keyset.GenerateKey(index)
+	var filename string
+	switch valid {
+	case true:
+		filename = keyset.GenerateKey(index)
+	case false:
+		filename = keyset.GenerateInvalidKey(index)
+	}
 	err := b.selectStmt.Reset()
 	if err != nil {
 		return "", fmt.Errorf("reset: %w", err)
@@ -126,20 +132,4 @@ func (b *SQLiteDB) LookupValid(index int) (string, error) {
 	}
 	content := b.selectStmt.ColumnText(0)
 	return content, nil
-}
-
-func (b *SQLiteDB) LookupInvalid() (string, error) {
-	err := b.selectStmt.Reset()
-	if err != nil {
-		return "", fmt.Errorf("reset: %w", err)
-	}
-	b.selectStmt.BindText(1, "invalid")
-	hasRow, err := b.selectStmt.Step()
-	if err != nil {
-		return "", fmt.Errorf("step: %w", err)
-	}
-	if hasRow {
-		return "", fmt.Errorf("row found")
-	}
-	return "", nil
 }

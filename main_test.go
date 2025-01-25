@@ -49,7 +49,7 @@ func BenchmarkLookupSqlite(b *testing.B) {
 	// reset the benchmark timer
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := db.LookupValid(rand.Intn(dirsize)); err != nil {
+		if _, err := db.Lookup(rand.Intn(dirsize), true); err != nil {
 			b.Fatalf("lookup valid: %v", err)
 		}
 	}
@@ -71,7 +71,7 @@ func BenchmarkLookupCDB(b *testing.B) {
 	// reset the benchmark timer
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := db.LookupValid(rand.Intn(dirsize)); err != nil {
+		if _, err := db.Lookup(rand.Intn(dirsize), true); err != nil {
 			b.Fatalf("lookup valid: %v", err)
 		}
 	}
@@ -84,9 +84,6 @@ func BenchmarkReaddirSqlite(b *testing.B) {
 	if err := db.CreateFolder(); err != nil {
 		b.Fatalf("create folder: %v", err)
 	}
-
-	defer db.Close()
-	defer db.Delete()
 	// reset the benchmark timer
 	b.ResetTimer()
 	// a readdir is a complete reading of the directory
@@ -105,4 +102,35 @@ func BenchmarkReaddirSqlite(b *testing.B) {
 	}
 	// stop the benchmark timer so we don't measure the defers
 	b.StopTimer()
+	if err := db.Delete(); err != nil {
+		b.Fatalf("delete: %v", err)
+	}
+}
+
+func BenchmarkReaddirCDB(b *testing.B) {
+	db := cdbdb.New("test.cdb", dirsize)
+	if err := db.CreateFolder(); err != nil {
+		b.Fatalf("create folder: %v", err)
+	}
+	// reset the benchmark timer
+	b.ResetTimer()
+	// a readdir is a complete reading of the directory
+	for i := 0; i < b.N; i++ {
+		if err := db.OpenReadOnly(); err != nil {
+			b.Fatalf("open readonly: %v", err)
+		}
+		for entry := 0; entry < dirsize; entry++ {
+			if _, _, err := db.Next(); err != nil {
+				b.Fatalf("next: %v", err)
+			}
+		}
+		if err := db.Close(); err != nil {
+			b.Fatalf("close: %v", err)
+		}
+	}
+	// stop the benchmark timer so we don't measure the defers
+	b.StopTimer()
+	if err := db.Delete(); err != nil {
+		b.Fatalf("delete: %v", err)
+	}
 }
