@@ -70,6 +70,7 @@ func (b *SQLiteDB) Delete() error {
 func (b *SQLiteDB) Close() error {
 	if b.selectStmt != nil {
 		_ = b.selectStmt.Finalize()
+		b.selectStmt = nil
 	}
 	if b.db != nil {
 		return b.db.Close()

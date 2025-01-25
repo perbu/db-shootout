@@ -100,7 +100,7 @@ func BenchmarkReaddirSqlite(b *testing.B) {
 			b.Fatalf("close: %v", err)
 		}
 	}
-	// stop the benchmark timer so we don't measure the defers
+	// stop the benchmark timer so we don't measure the cleanup
 	b.StopTimer()
 	if err := db.Delete(); err != nil {
 		b.Fatalf("delete: %v", err)
