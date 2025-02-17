@@ -48,12 +48,12 @@ func (b *SQLiteDB) CreateFolder() error {
 	if err := sqlitex.Execute(b.db, "CREATE TABLE IF NOT EXISTS folder (key TEXT, content TEXT)", nil); err != nil {
 		return fmt.Errorf("create table: %w", err)
 	}
-	if err := b.Populate(); err != nil {
-		return fmt.Errorf("populate: %w", err)
-	}
 	// create an index on the key column for faster lookups
 	if err := sqlitex.Execute(b.db, "CREATE INDEX IF NOT EXISTS folder_key ON folder (key)", nil); err != nil {
 		return fmt.Errorf("create index: %w", err)
+	}
+	if err := b.Populate(); err != nil {
+		return fmt.Errorf("populate: %w", err)
 	}
 	// done. close the database
 	if err := b.db.Close(); err != nil {
@@ -81,6 +81,9 @@ func (b *SQLiteDB) Close() error {
 // Populate generates n random entries resembling filenames and 64-byte random content.
 func (b *SQLiteDB) Populate() error {
 	insert := b.db.Prep("INSERT INTO folder (key, content) VALUES (?, ?)")
+	// start a transaction:
+	txFunc := sqlitex.Transaction(b.db)
+
 	defer insert.Finalize()
 	for i := 0; i < b.dirsize; i++ {
 		_ = insert.Reset()
@@ -89,10 +92,13 @@ func (b *SQLiteDB) Populate() error {
 		insert.BindText(2, keyset.GenerateRandomContent(64))
 		_, err := insert.Step()
 		if err != nil {
+			txFunc(&err)
 			return fmt.Errorf("insert step: %w", err)
 		}
 	}
 	b.current = 0
+	var dummy error
+	txFunc(&dummy) // commit
 	return nil
 }
 
