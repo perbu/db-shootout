@@ -157,3 +157,31 @@ func BenchmarkReaddirCDB(b *testing.B) {
 		b.Fatalf("delete: %v", err)
 	}
 }
+
+func BenchmarkReaddirCDB64(b *testing.B) {
+	db := cdbdb64.New("test.cdb64", dirsize)
+	if err := db.CreateFolder(); err != nil {
+		b.Fatalf("create folder: %v", err)
+	}
+	// reset the benchmark timer
+	b.ResetTimer()
+	// a readdir is a complete reading of the directory
+	for i := 0; i < b.N; i++ {
+		if err := db.OpenReadOnly(); err != nil {
+			b.Fatalf("open readonly: %v", err)
+		}
+		for entry := 0; entry < dirsize; entry++ {
+			if _, _, err := db.Next(); err != nil {
+				b.Fatalf("next: %v", err)
+			}
+		}
+		if err := db.Close(); err != nil {
+			b.Fatalf("close: %v", err)
+		}
+	}
+	// stop the benchmark timer so we don't measure the defers
+	b.StopTimer()
+	if err := db.Delete(); err != nil {
+		b.Fatalf("delete: %v", err)
+	}
+}
