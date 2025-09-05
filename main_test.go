@@ -1,10 +1,12 @@
 package main
 
 import (
-	cdbdb "github.com/perbu/db-shootout/cdb"
-	"github.com/perbu/db-shootout/sqlite"
 	"math/rand"
 	"testing"
+
+	cdbdb64 "github.com/perbu/db-shootout/cdb64"
+	cdbdb "github.com/perbu/db-shootout/cdbdb"
+	"github.com/perbu/db-shootout/sqlite"
 )
 
 const (
@@ -24,7 +26,7 @@ func BenchmarkCreateFolderSqlite(b *testing.B) {
 }
 
 func BenchmarkCreateFolderCDB(b *testing.B) {
-	db := cdbdb.New("test.cdb", dirsize)
+	db := cdbdb.New("test.cdbdb", dirsize)
 	for i := 0; i < b.N; i++ {
 		if err := db.CreateFolder(); err != nil {
 			b.Fatalf("create folder: %v", err)
@@ -58,7 +60,28 @@ func BenchmarkLookupSqlite(b *testing.B) {
 }
 
 func BenchmarkLookupCDB(b *testing.B) {
-	db := cdbdb.New("test.cdb", dirsize)
+	db := cdbdb.New("test.cdbdb", dirsize)
+	if err := db.CreateFolder(); err != nil {
+		b.Fatalf("create folder: %v", err)
+	}
+
+	if err := db.OpenReadOnly(); err != nil {
+		b.Fatalf("open readonly: %v", err)
+	}
+	defer db.Close()
+	defer db.Delete()
+	// reset the benchmark timer
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := db.Lookup(rand.Intn(dirsize), true); err != nil {
+			b.Fatalf("lookup valid: %v", err)
+		}
+	}
+	// stop the benchmark timer so we don't measure the defers
+	b.StopTimer()
+}
+func BenchmarkLookupCDB64(b *testing.B) {
+	db := cdbdb64.New("test.cdb64", dirsize)
 	if err := db.CreateFolder(); err != nil {
 		b.Fatalf("create folder: %v", err)
 	}
@@ -108,7 +131,7 @@ func BenchmarkReaddirSqlite(b *testing.B) {
 }
 
 func BenchmarkReaddirCDB(b *testing.B) {
-	db := cdbdb.New("test.cdb", dirsize)
+	db := cdbdb.New("test.cdbdb", dirsize)
 	if err := db.CreateFolder(); err != nil {
 		b.Fatalf("create folder: %v", err)
 	}

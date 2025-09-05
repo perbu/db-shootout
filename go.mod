@@ -12,6 +12,7 @@ require (
 	github.com/colinmarc/cdb v0.0.0-20190223170904-60f317823f70
 	github.com/dgraph-io/badger/v4 v4.5.1
 	github.com/openkvlab/boltdb v0.0.0-20240812092904-7b180c587323
+	github.com/perbu/cdb v0.0.0-20250905123741-0ebf69f854a1
 )
 
 require (
@@ -48,7 +49,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df // indirect
 	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/protobuf v1.36.3 // indirect
 	modernc.org/libc v1.55.3 // indirect

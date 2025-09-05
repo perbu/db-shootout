@@ -8,7 +8,7 @@ import (
 	"github.com/perbu/db-shootout/keyset"
 )
 
-// CDBDB implements the BenchmarkDB interface using github.com/colinmarc/cdb
+// CDBDB implements the BenchmarkDB interface using github.com/colinmarc/cdbdb
 type CDBDB struct {
 	filename string
 	dirsize  int
@@ -28,7 +28,7 @@ func New(filename string, dirsize int) *CDBDB {
 func (b *CDBDB) OpenReadOnly() error {
 	db, err := cdb.Open(b.filename)
 	if err != nil {
-		return fmt.Errorf("open cdb: %w", err)
+		return fmt.Errorf("open cdbdb: %w", err)
 	}
 	b.db = db
 	return nil
@@ -38,7 +38,7 @@ func (b *CDBDB) OpenReadOnly() error {
 func (b *CDBDB) CreateFolder() error {
 	writer, err := cdb.Create(b.filename)
 	if err != nil {
-		return fmt.Errorf("create cdb: %w", err)
+		return fmt.Errorf("create cdbdb: %w", err)
 	}
 
 	if err := b.populateWithWriter(writer); err != nil {
@@ -47,7 +47,7 @@ func (b *CDBDB) CreateFolder() error {
 	}
 
 	// Freeze the database (finalize the file) and close the handle.
-	// Freeze returns a *cdb.CDB for reading, but we can close it immediately
+	// Freeze returns a *cdbdb.CDB for reading, but we can close it immediately
 	// since CreateFolder only needs to build the file, not keep it open.
 	db, err := writer.Freeze()
 	if err != nil {
@@ -78,7 +78,7 @@ func (b *CDBDB) Close() error {
 func (b *CDBDB) Populate() error {
 	writer, err := cdb.Create(b.filename)
 	if err != nil {
-		return fmt.Errorf("create cdb: %w", err)
+		return fmt.Errorf("create cdbdb: %w", err)
 	}
 
 	if err := b.populateWithWriter(writer); err != nil {
@@ -96,7 +96,7 @@ func (b *CDBDB) Populate() error {
 	return nil
 }
 
-// populateWithWriter writes the generated key/value pairs to the given cdb.Writer.
+// populateWithWriter writes the generated key/value pairs to the given cdbdb.Writer.
 func (b *CDBDB) populateWithWriter(writer *cdb.Writer) error {
 	for i := 0; i < b.dirsize; i++ {
 		key := []byte(keyset.GenerateKey(i))
