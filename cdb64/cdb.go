@@ -110,14 +110,29 @@ func (b *CDBDB) populateWithWriter(writer *cdb.Writer) error {
 	return nil
 }
 
-// Next returns the next key in sequence, mimicking the same approach as the SQLite example.
+// Next returns the next key in sequence and actually reads the data from the database.
 func (b *CDBDB) Next() (string, bool, error) {
 	if b.current >= b.dirsize {
 		return "", false, nil
 	}
-	entry := keyset.GenerateKey(b.current)
+	if b.db == nil {
+		return "", false, fmt.Errorf("database is not open")
+	}
+
+	// Generate the key for this index
+	key := keyset.GenerateKey(b.current)
+
+	// Actually read the data from the database to simulate a real readdir operation
+	val, err := b.db.Get([]byte(key))
+	if err != nil {
+		return "", false, fmt.Errorf("get key %s: %w", key, err)
+	}
+	if val == nil {
+		return "", false, fmt.Errorf("key %s not found", key)
+	}
+
 	b.current++
-	return entry, true, nil
+	return key, true, nil
 }
 
 // LookupValid retrieves content for the generated key at the given index.
