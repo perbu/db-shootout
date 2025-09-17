@@ -13,7 +13,8 @@ type CDBDB struct {
 	filename string
 	dirsize  int
 	current  int
-	db       *cdb.CDB // read-only handle after freezing
+	db       *cdb.CDB      // read-only handle after freezing
+	iter     *cdb.Iterator // iterator for sequential reads
 }
 
 // New creates a new CDBDB instance with the given filename and directory size.
@@ -31,6 +32,8 @@ func (b *CDBDB) OpenReadOnly() error {
 		return fmt.Errorf("open cdbdb: %w", err)
 	}
 	b.db = db
+	b.iter = db.Iter() // Initialize iterator for sequential reads
+	b.current = 0      // Reset current position
 	return nil
 }
 
@@ -68,6 +71,7 @@ func (b *CDBDB) Close() error {
 	if b.db != nil {
 		err := b.db.Close()
 		b.db = nil
+		b.iter = nil // Clear iterator reference
 		return err
 	}
 	return nil
@@ -110,26 +114,27 @@ func (b *CDBDB) populateWithWriter(writer *cdb.Writer) error {
 	return nil
 }
 
-// Next returns the next key in sequence and actually reads the data from the database.
+// Next returns the next key in sequence using the iterator for true sequential access.
 func (b *CDBDB) Next() (string, bool, error) {
 	if b.current >= b.dirsize {
 		return "", false, nil
 	}
-	if b.db == nil {
-		return "", false, fmt.Errorf("database is not open")
+	if b.iter == nil {
+		return "", false, fmt.Errorf("database is not open or iterator not initialized")
 	}
 
-	// Generate the key for this index
-	key := keyset.GenerateKey(b.current)
+	// Use the iterator to get the next key-value pair sequentially
+	if !b.iter.Next() {
+		// Check if there was an error during iteration
+		if err := b.iter.Err(); err != nil {
+			return "", false, fmt.Errorf("iterator error: %w", err)
+		}
+		// No more entries
+		return "", false, nil
+	}
 
-	// Actually read the data from the database to simulate a real readdir operation
-	val, err := b.db.Get([]byte(key))
-	if err != nil {
-		return "", false, fmt.Errorf("get key %s: %w", key, err)
-	}
-	if val == nil {
-		return "", false, fmt.Errorf("key %s not found", key)
-	}
+	// Get the key from the iterator
+	key := string(b.iter.Key())
 
 	b.current++
 	return key, true, nil

@@ -8,12 +8,13 @@ import (
 	"github.com/perbu/db-shootout/keyset"
 )
 
-// CDBDB implements the BenchmarkDB interface using github.com/colinmarc/cdbdb
+// CDBDB implements the BenchmarkDB interface using github.com/perbu/cdb
 type CDBDB struct {
 	filename string
 	dirsize  int
 	current  int
 	db       *cdb.MmapCDB
+	keys     [][]byte // Pre-loaded keys for iteration
 }
 
 // New creates a new CDBDB instance with the given filename and directory size.
@@ -31,6 +32,17 @@ func (b *CDBDB) OpenReadOnly() error {
 		return fmt.Errorf("open cdbdb: %w", err)
 	}
 	b.db = db
+	b.current = 0 // Reset current position
+
+	// Pre-load all keys using the iterator for optimal performance
+	b.keys = make([][]byte, 0, b.dirsize)
+	for key := range db.Keys() {
+		// Copy the key since it points to mmap data
+		keyCopy := make([]byte, len(key))
+		copy(keyCopy, key)
+		b.keys = append(b.keys, keyCopy)
+	}
+
 	return nil
 }
 
@@ -68,6 +80,7 @@ func (b *CDBDB) Close() error {
 	if b.db != nil {
 		err := b.db.Close()
 		b.db = nil
+		b.keys = nil // Clear keys
 		return err
 	}
 	return nil
@@ -110,20 +123,21 @@ func (b *CDBDB) populateWithWriter(writer *cdb.Writer) error {
 	return nil
 }
 
-// Next returns the next key in sequence and actually reads the data from the database.
+// Next returns the next key in sequence using pre-loaded keys from the iterator.
 func (b *CDBDB) Next() (string, bool, error) {
-	if b.current >= b.dirsize {
+	if b.current >= len(b.keys) {
 		return "", false, nil
 	}
 	if b.db == nil {
 		return "", false, fmt.Errorf("database is not open")
 	}
 
-	// Generate the key for this index
-	key := keyset.GenerateKey(b.current)
+	// Get the key from our pre-loaded keys slice
+	key := string(b.keys[b.current])
 
-	// Actually read the data from the database to simulate a real readdir operation
-	val, err := b.db.Get([]byte(key))
+	// Still read the data to simulate a real readdir operation
+	// but now we're using the actual key from iteration, not generated
+	val, err := b.db.Get(b.keys[b.current])
 	if err != nil {
 		return "", false, fmt.Errorf("get key %s: %w", key, err)
 	}
